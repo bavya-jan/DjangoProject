@@ -29,7 +29,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+CSRF_TRUSTED_ORIGINS =["http://127.0.0.1:8000/"]
 # Application definition
 
 INSTALLED_APPS = [
@@ -53,6 +53,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "LoginSystem.urls"
+
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 TEMPLATES = [
     {

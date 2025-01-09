@@ -2,14 +2,13 @@ from django.shortcuts import render
 from django.http import HttpResponse,JsonResponse, HttpResponseRedirect
 from .forms import LoginForm, RegisterForm
 from .models import UserDetails
+from django.views.decorators.csrf import csrf_exempt
 
 # Create your views here.
 def print_hello(request):
     return HttpResponse("Hello, World!")
 
 def login_view(request):
-    if request.session.get("username"):
-        return HttpResponse("You are already logged in")
     if request.method == "POST":
         try:
             login_form = LoginForm(request.POST, request.POST)
@@ -20,6 +19,7 @@ def login_view(request):
                 
                 user = UserDetails.objects.get(username=username)
                 if user.password == password:
+                    request.session.set_expiry(60)
                     # Perform authentication
                     request.session["username"] = username
                     return JsonResponse({"success": True, "message": "Login successful"})
@@ -59,3 +59,47 @@ def register_view(request):
         register_form = RegisterForm()
         return render(request, "Loginify/Register.html", {"register_form": register_form})
 
+
+def get_all_user_details_view(request):
+    try:
+        user_details = UserDetails.objects.all()
+        return JsonResponse([{"username": user.username, "email": user.email , "password" : user.password} for user in user_details], safe=False)
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+def get_user_by_email_view(request, username):
+    try:
+        user_details = UserDetails.objects.get(username=username)
+        return JsonResponse({"username": user_details.username, "email": user_details.email})
+    except UserDetails.DoesNotExist:
+        return JsonResponse({"success": False, "message": "User does not exist"})
+
+@csrf_exempt
+def update_user_details_view(request, username, email = None , password = None):
+    try:
+        user_details = UserDetails.objects.get(username=username)
+        if email is not None:
+            user_details.email = email
+            user_details.save()
+            return JsonResponse({"success": True, "message": "User details updated"})
+        elif password is not None:
+            user_details.password = password
+            user_details.save()
+            return JsonResponse({"success": True, "message": "User details updated"})
+        return JsonResponse({"success": False, "message": "User details not updated"})
+    except UserDetails.DoesNotExist:
+        return JsonResponse({"success": False, "message": "User does not exist"})   
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+
+
+@csrf_exempt
+def delete_user_details_view(request, username):
+    try:
+        user_details = UserDetails.objects.get(username=username)
+        user_details.delete()
+        return JsonResponse({"success": True, "message": "User details deleted"})
+    except UserDetails.DoesNotExist:
+        return JsonResponse({"success": False, "message": "User does not exist"})   
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
